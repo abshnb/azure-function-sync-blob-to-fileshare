@@ -11,10 +11,9 @@ env:
   PYTHON_VERSION: '3.13' 
 
 jobs:
-  build-and-deploy: 
-    runs-on: self-hosted  # Ensures execution happens entirely inside your private VNet
+  build:
+    runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
 
     steps:
@@ -26,12 +25,39 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # Cleans out any stale local build artifacts to guarantee a clean deployment
-      - name: Clean and Install dependencies into .python_packages
+      - name: Clean and install dependencies into .python_packages
         run: |
           rm -rf .python_packages
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt --target="./.python_packages/lib/site-packages"
+
+      - name: Zip artifact for deployment
+        run: |
+          zip -r release.zip . -x "**/.git/**" "**/.github/**" "**/.venv/**" "release.zip"
+
+      - name: Upload artifact for deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: release.zip
+
+  deploy:
+    runs-on: self-hosted
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+
+      - name: Unzip artifact for deployment
+        run: |
+          unzip release.zip
+          rm release.zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -46,7 +72,6 @@ jobs:
         with:
           app-name: 'funstorpocomar'
           slot-name: 'Production'
-          # Passing '.' lets the Azure action package the local folder structure natively
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           scm-do-build-during-deployment: false
           enable-oryx-build: false

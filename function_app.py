@@ -12,20 +12,13 @@ BLOB_STORAGE_ACCOUNT_URL = os.getenv("BLOB_STORAGE_ACCOUNT_URL")
 BLOB_STORAGE_CONTAINER_NAME = os.getenv("BLOB_STORAGE_CONTAINER_NAME")
 BLOB_STORAGE_FILE_SHARE_MOUNT_PATH = os.getenv("BLOB_STORAGE_FILE_SHARE_MOUNT_PATH")
 BLOB_TRIGGER_CONNECTION = os.getenv("BLOB_TRIGGER_CONNECTION")
-UAMI_CLIENT_ID = os.getenv("UAMI_CLIENT_ID")
+"""
+Configuration is read at import time but validation is deferred to the
+trigger handler so import-time exceptions don't prevent function discovery.
+The function uses the system-assigned managed identity (no client id).
+"""
 
-if not BLOB_STORAGE_ACCOUNT_URL:
-    raise ValueError("Missing required environment variable: BLOB_STORAGE_ACCOUNT_URL")
-if not BLOB_STORAGE_CONTAINER_NAME:
-    raise ValueError("Missing required environment variable: BLOB_STORAGE_CONTAINER_NAME")
-if not BLOB_STORAGE_FILE_SHARE_MOUNT_PATH:
-    raise ValueError("Missing required environment variable: BLOB_STORAGE_FILE_SHARE_MOUNT_PATH")
-if not BLOB_TRIGGER_CONNECTION:
-    raise ValueError("Missing required environment variable: BLOB_TRIGGER_CONNECTION")
-if not UAMI_CLIENT_ID:
-    raise ValueError("Missing required environment variable: UAMI_CLIENT_ID")
-
-credential = ManagedIdentityCredential(client_id=UAMI_CLIENT_ID)
+credential = ManagedIdentityCredential()
 
 @app.blob_trigger(
     arg_name="myblob",
@@ -33,6 +26,23 @@ credential = ManagedIdentityCredential(client_id=UAMI_CLIENT_ID)
     connection=BLOB_TRIGGER_CONNECTION,
 )
 def funstorpocomar(myblob: func.InputStream):
+    # perform runtime validation of required settings so the host can discover
+    # functions even if configuration is incomplete; fail the invocation
+    # gracefully with logs if required settings are missing.
+    missing = []
+    if not BLOB_STORAGE_ACCOUNT_URL:
+        missing.append("BLOB_STORAGE_ACCOUNT_URL")
+    if not BLOB_STORAGE_CONTAINER_NAME:
+        missing.append("BLOB_STORAGE_CONTAINER_NAME")
+    if not BLOB_STORAGE_FILE_SHARE_MOUNT_PATH:
+        missing.append("BLOB_STORAGE_FILE_SHARE_MOUNT_PATH")
+    if not BLOB_TRIGGER_CONNECTION:
+        missing.append("BLOB_TRIGGER_CONNECTION")
+
+    if missing:
+        logging.error("Missing required environment variables: %s", ",".join(missing))
+        return
+
     blob_name = myblob.name
     if blob_name.startswith(f"{BLOB_STORAGE_CONTAINER_NAME}/"):
         blob_name = blob_name[len(f"{BLOB_STORAGE_CONTAINER_NAME}/") :]

@@ -25,21 +25,27 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      # --only-binary=:all: forces pip to fetch pre-compiled universal Linux wheels 
+      # suitable for the Azure host, preventing local compilation mismatches.
       - name: Clean and install dependencies into .python_packages
         run: |
           rm -rf .python_packages
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt --target="./.python_packages/lib/site-packages"
+          python -m pip install -r requirements.txt --target="./.python_packages/lib/site-packages" --only-binary=:all:
 
-      - name: Zip artifact for deployment
+      # Create a dedicated, clean artifact directory to avoid tracking zip anomalies
+      - name: Prepare artifact payload
         run: |
-          zip -r release.zip . -x "**/.git/**" "**/.github/**" "**/.venv/**" "release.zip"
+          mkdir -p deploy_payload
+          cp -r .python_packages host.json requirements.txt function_app.py deploy_payload/
+          # If you have blueprints, utility folders, or local modules, copy them here too:
+          # cp -r your_helper_modules/ deploy_payload/ 2>/dev/null || true
 
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: release.zip
+          path: deploy_payload/
 
   deploy:
     runs-on: self-hosted
@@ -49,20 +55,22 @@ jobs:
       contents: read
 
     steps:
+      # Clear any stale deployment files left in the self-hosted runner workspace
+      - name: Clean runner workspace
+        run: |
+          rm -rf ./* .* 2>/dev/null || true
+
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: python-app
-
-      - name: Unzip artifact for deployment
-        run: |
-          unzip release.zip
-          rm release.zip
+          path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          auth-type: managedidentity
+          use-managed-identity: true
+          tenant-id: ${{ secrets.__tenantidsecretname__ }}
           subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
 
       - name: 'Deploy to Azure Functions'

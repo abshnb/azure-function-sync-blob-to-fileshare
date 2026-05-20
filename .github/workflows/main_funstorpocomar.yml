@@ -69,7 +69,7 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          auth-type: managedidentity
+          auth-type: IDENTITY
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4517B4A97E2C409285BDA376C0F9AA75 }}
 
       - name: 'Deploy to Azure Functions'

@@ -12,7 +12,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted  # Build where you deploy to guarantee binary/C-extension safety
+    runs-on: self-hosted  # Ensures execution happens entirely inside your private VNet
     permissions:
       id-token: write
       contents: read
@@ -26,8 +26,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # Note: We do NOT create a local venv directory here anymore. 
-      # We clean out old package artifacts to guarantee a fresh deterministic build.
+      # Cleans out any stale local build artifacts to guarantee a clean deployment
       - name: Clean and Install dependencies into .python_packages
         run: |
           rm -rf .python_packages
@@ -47,8 +46,7 @@ jobs:
         with:
           app-name: 'funstorpocomar'
           slot-name: 'Production'
-          # Passing '.' lets the Azure action automatically handle zipping the folder 
-          # correctly while honoring your root configuration files.
+          # Passing '.' lets the Azure action package the local folder structure natively
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           scm-do-build-during-deployment: false
           enable-oryx-build: false

@@ -70,7 +70,7 @@ jobs:
         uses: azure/login@v2
         with:
           auth-type: IDENTITY
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4517B4A97E2C409285BDA376C0F9AA75 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
       - name: 'Deploy to Azure Functions'
         uses: Azure/functions-action@v1

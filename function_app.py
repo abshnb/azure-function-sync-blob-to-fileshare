@@ -65,7 +65,7 @@ credential = ManagedIdentityCredential()
 @app.function_name(name="BlobTrigger1")
 @app.blob_trigger(arg_name="myblob", 
                   path="samples-workitems/{name}",
-                  connection="AzureWebJobsStorage")
+                  connection="BlobStorageConnection")
 def test_function(myblob: func.InputStream):
     """
     Test blob trigger function using system-assigned managed identity.

@@ -1,7 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-# More info on Python, GitHub Actions, and Azure Functions: https://aka.ms/python-webapps-actions
-
 name: Build and deploy Python project to Azure Function App - funstorpocomar
 
 on:
@@ -11,14 +7,15 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  PYTHON_VERSION: '3.13' # set this to the python version to use (supports 3.6, 3.7, 3.8)
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' 
+  PYTHON_VERSION: '3.13' 
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-and-deploy:
+    runs-on: self-hosted  # Build where you deploy to guarantee binary/C-extension safety
     permissions:
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -29,47 +26,14 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Create and start virtual environment
+      # Note: We do NOT create a local venv directory here anymore. 
+      # We clean out old package artifacts to guarantee a fresh deterministic build.
+      - name: Clean and Install dependencies into .python_packages
         run: |
-          python -m venv venv
-          source venv/bin/activate
-
-      - name: Install dependencies into .python_packages
-        run: |
-          mkdir -p .python_packages/lib/site-packages
+          rm -rf .python_packages
+          python -m pip install --upgrade pip
           python -m pip install -r requirements.txt --target="./.python_packages/lib/site-packages"
 
-      # Optional: Add step to run tests here
-
-      - name: Zip artifact for deployment (include .python_packages)
-        run: zip release.zip ./* .python_packages -r
-
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            release.zip
-            !venv/
-
-  deploy:
-    runs-on: self-hosted
-    needs: build
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      - name: Unzip artifact for deployment
-        run: |
-          unzip release.zip
-          rm release.zip
-        
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -83,4 +47,8 @@ jobs:
         with:
           app-name: 'funstorpocomar'
           slot-name: 'Production'
+          # Passing '.' lets the Azure action automatically handle zipping the folder 
+          # correctly while honoring your root configuration files.
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          scm-do-build-during-deployment: false
+          enable-oryx-build: false

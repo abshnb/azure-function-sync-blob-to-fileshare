@@ -16,7 +16,7 @@ credential = ManagedIdentityCredential(client_id=UAMI_CLIENT_ID)
 @app.function_name(name="BlobTriggerTesting")
 @app.blob_trigger(
     arg_name="myblob", 
-    path=f"{os.getenv('BLOB_STORAGE_CONTAINER_NAME', 'samples-workitems')}/{{name}}",
+    path=f"{os.getenv('BLOB_STORAGE_CONTAINER_NAME')}/{{name}}",
     connection="BlobStorageConnection"
 )
 def test_function(myblob: func.InputStream):

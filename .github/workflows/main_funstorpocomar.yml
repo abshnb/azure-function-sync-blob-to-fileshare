@@ -25,27 +25,22 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # --only-binary=:all: forces pip to fetch pre-compiled universal Linux wheels 
-      # suitable for the Azure host, preventing local compilation mismatches.
       - name: Clean and install dependencies into .python_packages
         run: |
           rm -rf .python_packages
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt --target="./.python_packages/lib/site-packages" --only-binary=:all:
+          python -m pip install -r requirements.txt --target="./.python_packages/lib/site-packages"
 
       # Create a dedicated, clean artifact directory to avoid tracking zip anomalies
       - name: Prepare artifact payload
         run: |
-          mkdir -p deploy_payload
-          cp -r .python_packages host.json requirements.txt function_app.py deploy_payload/
-          # If you have blueprints, utility folders, or local modules, copy them here too:
-          # cp -r your_helper_modules/ deploy_payload/ 2>/dev/null || true
+          zip -r function_app_payload.zip .python_packages host.json requirements.txt function_app.py
 
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
-          name: python-app
-          path: deploy_payload/
+          name: python-app-zip
+          path: function_app_payload.zip
 
   deploy:
     runs-on: self-hosted
@@ -54,9 +49,8 @@ jobs:
       id-token: write
       contents: read
     
-    # env:
-    #   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
-    #   PYTHONPATH: '/workspace/.python_packages/lib/site-packages'
+    env:
+      PYTHONPATH: '/workspace/.python_packages/lib/site-packages'
 
     steps:
       # Clear any stale deployment files left in the self-hosted runner workspace
@@ -67,8 +61,8 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: python-app
-          path: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          name: python-app-zip
+          path: .
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -83,6 +77,6 @@ jobs:
         with:
           app-name: 'funcstppocomar01'
           slot-name: 'Production'
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          package: './function_app_payload.zip'
           scm-do-build-during-deployment: false
           enable-oryx-build: false

@@ -53,6 +53,9 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    
+    # env:
+    #   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
 
     steps:
       # Clear any stale deployment files left in the self-hosted runner workspace
@@ -71,8 +74,9 @@ jobs:
         with:
           auth-type: IDENTITY
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
 
-      - name: 'Deploy to Azure Functions'
+      - name: Deploy to Azure Functions
         uses: Azure/functions-action@v1
         id: deploy-to-function
         with:

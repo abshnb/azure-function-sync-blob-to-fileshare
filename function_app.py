@@ -2,7 +2,7 @@ import logging
 import os
 import azure.functions as func
 from azure.identity import ManagedIdentityCredential
-from azure.storage.blobs import BlobServiceClient
+from azure.storage.blob import BlobServiceClient
 
 app = func.FunctionApp()
 

@@ -13,7 +13,7 @@ BLOB_STORAGE_CONTAINER_NAME = os.getenv("BLOB_STORAGE_CONTAINER_NAME")
 # (This ensures the azure-identity library loads smoothly)
 credential = ManagedIdentityCredential(client_id=UAMI_CLIENT_ID)
 
-@app.function_name(name="BlobTriggerTesting")
+@app.function_name(name="BlobTrigger")
 @app.blob_trigger(
     arg_name="myblob", 
     path=f"{os.getenv('BLOB_STORAGE_CONTAINER_NAME')}/{{name}}",

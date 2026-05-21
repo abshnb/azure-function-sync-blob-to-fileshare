@@ -75,7 +75,7 @@ jobs:
         uses: Azure/functions-action@v1
         id: deploy-to-function
         with:
-          app-name: 'funcstppocomar01'
+          app-name: 'funcstpocomar01'
           slot-name: 'Production'
           package: './function_app_payload.zip'
           scm-do-build-during-deployment: false

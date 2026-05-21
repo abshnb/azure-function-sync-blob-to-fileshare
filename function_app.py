@@ -1,12 +1,14 @@
 import logging
+import os
 import azure.functions as func
 from azure.identity import ManagedIdentityCredential
 from azure.storage.blob import BlobClient
 
 app = func.FunctionApp()
 
-# System-assigned Managed Identity credential
-credential = ManagedIdentityCredential()
+# User-assigned Managed Identity credential
+UAMI_CLIENT_ID = os.getenv("UAMI_CLIENT_ID")
+credential = ManagedIdentityCredential(client_id=UAMI_CLIENT_ID)
 
 # TODO: Original blob download logic commented out for testing basic trigger
 # Configuration:
